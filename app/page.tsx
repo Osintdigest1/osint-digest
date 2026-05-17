@@ -257,12 +257,12 @@ export default function Home() {
           marginBottom: "20px",
         }}
       >
-        <marquee scrollamount={8}>
+        <div className="ticker">
           🔴 LIVE OSINT MONITORING ACTIVE
           | 🔴 UKRAINE | 🔴 KASHMIR |
           🔴 SOUTH CHINA SEA |
           🔴 GLOBAL ALERT STATUS ACTIVE
-        </marquee>
+        </div>
       </div>
 
       {/* TITLE */}
