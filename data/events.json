@@ -1,0 +1,31 @@
+[
+  {
+    "id": 1,
+    "title": "Ukraine Missile Strike",
+    "lat": 50.45,
+    "lng": 30.52,
+    "color": "red",
+    "region": "Kyiv",
+    "time": "2 min ago"
+  },
+
+  {
+    "id": 2,
+    "title": "Kashmir Border Activity",
+    "lat": 34.08,
+    "lng": 74.79,
+    "color": "yellow",
+    "region": "LOC Region",
+    "time": "12 min ago"
+  },
+
+  {
+    "id": 3,
+    "title": "South China Sea Naval Movement",
+    "lat": 13.0,
+    "lng": 114.0,
+    "color": "orange",
+    "region": "Spratly Region",
+    "time": "7 min ago"
+  }
+]
