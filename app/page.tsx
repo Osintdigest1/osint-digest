@@ -4,637 +4,600 @@ import { useEffect, useState } from "react";
 
 import dynamic from "next/dynamic";
 
-import { useMapStore } from "../store/mapStore";
-
-import { supabase } from "../lib/supabase";
-
 const WorldMap = dynamic(
-  () => import("../components/WorldMap"),
+  () => import("@/components/WorldMap"),
   {
     ssr: false,
   }
 );
+import AdminPanel from "@/components/AdminPanel";
 
-type EventType = {
-  id: number;
-  title: string;
-  region: string;
-  lat: number;
-  lng: number;
-  color: string;
-  severity: string;
-  created_at: string;
-};
+import { supabase } from "@/lib/supabase";
 
 export default function Home() {
-  const [events, setEvents] = useState<EventType[]>([]);
 
-  const [utcTime, setUtcTime] =
-    useState("");
+  const [events, setEvents] =
+    useState<any[]>([]);
 
-  const [filter, setFilter] =
-    useState("all");
+  const [selectedEvent, setSelectedEvent] =
+    useState<any>(null);
 
   const [search, setSearch] =
     useState("");
 
-  const [title, setTitle] =
-    useState("");
+  const [severityFilter, setSeverityFilter] =
+    useState("ALL");
 
-  const [region, setRegion] =
-    useState("");
-
-  const [lat, setLat] =
-    useState("");
-
-  const [lng, setLng] =
-    useState("");
-
-  const [severity, setSeverity] =
-    useState("medium");
-
-  const setSelectedPosition =
-    useMapStore(
-      (state) => state.setSelectedPosition
-    );
+  /* LOAD EVENTS */
 
   useEffect(() => {
+
     fetchEvents();
-
-    updateClock();
-
-    const clockInterval =
-      setInterval(() => {
-        updateClock();
-      }, 1000);
 
     const channel =
       supabase
-        .channel("events-channel")
+
+        .channel(
+          "events-realtime"
+        )
+
         .on(
+
           "postgres_changes",
+
           {
-            event: "INSERT",
+
+            event: "*",
+
             schema: "public",
+
             table: "events",
           },
-          (payload) => {
-            setEvents((prev) => [
-              payload.new as EventType,
-              ...prev,
-            ]);
+
+          () => {
+
+            fetchEvents();
           }
         )
+
         .subscribe();
 
     return () => {
-      clearInterval(clockInterval);
 
       supabase.removeChannel(
         channel
       );
     };
+
   }, []);
 
   async function fetchEvents() {
-    const { data } =
-      await supabase
-        .from("events")
-        .select("*")
-        .order(
-          "created_at",
-          {
-            ascending: false,
-          }
-        );
+
+    const {
+      data,
+    } = await supabase
+
+      .from("events")
+
+      .select("*")
+
+      .order(
+        "id",
+        {
+          ascending: false,
+        }
+      );
 
     if (data) {
+
       setEvents(data);
     }
   }
 
-  async function createEvent() {
-    if (
-      !title ||
-      !region ||
-      !lat ||
-      !lng
-    ) {
-      alert(
-        "Please fill all fields"
-      );
+  /* ADD EVENT */
 
-      return;
-    }
+  async function handleAddEvent(
+    eventData: any
+  ) {
 
-    let color = "orange";
+    await supabase
 
-    if (severity === "high") {
-      color = "red";
-    }
+      .from("events")
 
-    if (severity === "low") {
-      color = "yellow";
-    }
-
-    const { error } =
-      await supabase
-        .from("events")
-        .insert([
-          {
-            title,
-            region,
-            lat: Number(lat),
-            lng: Number(lng),
-            severity,
-            color,
-          },
-        ]);
-
-    if (error) {
-      console.log(error);
-
-      alert(
-        "Failed to create event"
-      );
-    } else {
-      setTitle("");
-      setRegion("");
-      setLat("");
-      setLng("");
-
-      alert(
-        "Event Added Successfully"
-      );
-    }
+      .insert([
+        eventData,
+      ]);
   }
 
-  function updateClock() {
-    const now = new Date();
-
-    setUtcTime(
-      now.toUTCString()
-    );
-  }
+  /* FILTER EVENTS */
 
   const filteredEvents =
-    events.filter((event) => {
-      const matchesSeverity =
-        filter === "all"
-          ? true
-          : event.severity ===
-            filter;
+    events.filter(
+      (event) => {
 
-      const matchesSearch =
-        event.title
-          .toLowerCase()
-          .includes(
-            search.toLowerCase()
-          ) ||
-        event.region
-          .toLowerCase()
-          .includes(
-            search.toLowerCase()
-          );
+        const matchesSearch =
 
-      return (
-        matchesSeverity &&
-        matchesSearch
-      );
-    });
+          event.title
+            ?.toLowerCase()
+
+            .includes(
+              search.toLowerCase()
+            )
+
+          ||
+
+          event.region
+            ?.toLowerCase()
+
+            .includes(
+              search.toLowerCase()
+            );
+
+        const matchesSeverity =
+
+          severityFilter ===
+          "ALL"
+
+            ? true
+
+            : event.severity ===
+              severityFilter.toLowerCase();
+
+        return (
+          matchesSearch &&
+          matchesSeverity
+        );
+      }
+    );
+
+  /* COUNTS */
 
   const highThreats =
     events.filter(
-      (e) =>
-        e.severity === "high"
-    ).length;
+      (
+        event
+      ) =>
 
-  const mediumThreats =
-    events.filter(
-      (e) =>
-        e.severity === "medium"
+        event.severity ===
+        "high"
     ).length;
+let defcon = "DEFCON 5";
+let defconLabel = "NORMAL";
+let defconColor = "#22c55e";
 
-  const lowThreats =
+if (highThreats >= 1) {
+
+  defcon = "DEFCON 4";
+  defconLabel = "ELEVATED";
+  defconColor = "#eab308";
+}
+
+if (highThreats >= 3) {
+
+  defcon = "DEFCON 3";
+  defconLabel = "HIGH ALERT";
+  defconColor = "#f97316";
+}
+
+if (highThreats >= 5) {
+
+  defcon = "DEFCON 2";
+  defconLabel = "SEVERE";
+  defconColor = "#ef4444";
+}
+
+if (highThreats >= 7) {
+
+  defcon = "DEFCON 1";
+  defconLabel = "CRITICAL";
+  defconColor = "#dc2626";
+}
+  const navalAssets =
     events.filter(
-      (e) =>
-        e.severity === "low"
+      (
+        event
+      ) =>
+
+        event.category ===
+        "Naval"
     ).length;
 
   return (
-    <main
-      style={{
-        background: "black",
-        color: "red",
-        minHeight: "100vh",
-        padding: "20px",
-      }}
-    >
-      {/* TOP */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent:
-            "space-between",
-          marginBottom: "20px",
-        }}
-      >
-        <div>
-          GLOBAL THREAT MONITOR
-        </div>
+
+    <main className="dashboard">
+
+      {/* HEADER */}
+
+      <div className="topbar">
 
         <div>
-          UTC: {utcTime}
+
+          <div className="platform-label">
+            GLOBAL THREAT
+            INTELLIGENCE PLATFORM
+          </div>
+
+          <h1 className="logo">
+            OSINT.DIGEST
+          </h1>
+
         </div>
+
+        {/* ONLY ONE ADMIN PANEL */}
+
+        <AdminPanel
+          onAddEvent={
+            handleAddEvent
+          }
+        />
+
       </div>
 
+      {/* TIME ROW */}
+
+      <div className="time-row">
+
+        <div className="time-box">
+          UTC / ZULU
+        </div>
+
+        <div className="time-value">
+
+          {
+            new Date()
+              .toUTCString()
+          }
+
+        </div>
+
+        <div className="time-box green">
+          IST
+        </div>
+
+        <div className="time-value green-text">
+
+          {
+            new Date()
+              .toLocaleString(
+                "en-IN"
+              )
+          }
+
+        </div>
+
+      </div>
+<div
+  className="defcon-bar"
+
+  style={{
+    borderColor: defconColor,
+  }}
+>
+
+  <div
+    className="defcon-level"
+
+    style={{
+      color: defconColor,
+    }}
+  >
+    {defcon}
+  </div>
+
+  <div className="defcon-label">
+    {defconLabel}
+  </div>
+
+</div>
       {/* TICKER */}
-      <div
-        style={{
-          background: "#111",
-          border: "1px solid red",
-          padding: "10px",
-          marginBottom: "20px",
-        }}
-      >
-        <div className="ticker">
-          🔴 LIVE OSINT MONITORING ACTIVE
-          | 🔴 UKRAINE | 🔴 KASHMIR |
-          🔴 SOUTH CHINA SEA |
-          🔴 GLOBAL ALERT STATUS ACTIVE
+
+      <div className="ticker">
+
+        <div className="ticker-track">
+
+          {events.map(
+            (
+              event
+            ) => (
+
+              <span
+
+                key={
+                  event.id
+                }
+
+                className={
+
+                  event.severity ===
+                  "high"
+
+                    ? "ticker-high"
+
+                    : "ticker-normal"
+                }
+              >
+
+                ● {
+
+                  event.region
+                }
+
+                {" — "}
+
+                {
+
+                  event.title
+                }
+
+                {" — active"}
+
+              </span>
+            )
+          )}
+
         </div>
+
       </div>
 
-      {/* TITLE */}
-      <h1
-        style={{
-          fontSize: "72px",
-          marginBottom: "20px",
-        }}
-      >
-        OSINT.DIGEST LIVE
-      </h1>
+      {/* METRICS */}
 
-      {/* STATS */}
-      <div
-        style={{
-          display: "flex",
-          gap: "15px",
-          marginBottom: "20px",
-        }}
-      >
-        <div
-          style={{
-            background: "#111",
-            border:
-              "1px solid red",
-            padding: "15px",
-            minWidth: "160px",
-          }}
-        >
-          <h3>TOTAL EVENTS</h3>
+      <div className="metrics-grid">
 
-          <h1>
+        <div className="metric-card red">
+
+          <div className="metric-title">
+            HIGH THREATS
+          </div>
+
+          <div className="metric-value">
+            {highThreats}
+          </div>
+
+        </div>
+
+        <div className="metric-card blue">
+
+          <div className="metric-title">
+            ACTIVE INCIDENTS
+          </div>
+
+          <div className="metric-value">
             {events.length}
-          </h1>
+          </div>
+
         </div>
 
-        <div
-          style={{
-            background: "#111",
-            border:
-              "1px solid red",
-            padding: "15px",
-            minWidth: "160px",
-          }}
-        >
-          <h3>HIGH THREATS</h3>
+        <div className="metric-card green">
 
-          <h1>{highThreats}</h1>
+          <div className="metric-title">
+            MONITORING
+          </div>
+
+          <div className="metric-value">
+            0
+          </div>
+
         </div>
 
-        <div
-          style={{
-            background: "#111",
-            border:
-              "1px solid orange",
-            padding: "15px",
-            minWidth: "160px",
-          }}
-        >
-          <h3>MEDIUM</h3>
+        <div className="metric-card blue">
 
-          <h1>
-            {mediumThreats}
-          </h1>
+          <div className="metric-title">
+            NAVAL ASSETS
+          </div>
+
+          <div className="metric-value">
+            {navalAssets}
+          </div>
+
         </div>
 
-        <div
-          style={{
-            background: "#111",
-            border:
-              "1px solid yellow",
-            padding: "15px",
-            minWidth: "160px",
-          }}
-        >
-          <h3>LOW</h3>
-
-          <h1>{lowThreats}</h1>
-        </div>
-      </div>
-
-      {/* ADMIN PANEL */}
-      <div
-        style={{
-          border: "1px solid red",
-          padding: "20px",
-          marginBottom: "20px",
-          background: "#111",
-        }}
-      >
-        <h2
-          style={{
-            marginBottom: "15px",
-          }}
-        >
-          ADMIN EVENT PANEL
-        </h2>
-
-        <div
-          style={{
-            display: "flex",
-            gap: "10px",
-            flexWrap: "wrap",
-          }}
-        >
-          <input
-            placeholder="Title"
-            value={title}
-            onChange={(e) =>
-              setTitle(
-                e.target.value
-              )
-            }
-          />
-
-          <input
-            placeholder="Region"
-            value={region}
-            onChange={(e) =>
-              setRegion(
-                e.target.value
-              )
-            }
-          />
-
-          <input
-            placeholder="Latitude"
-            value={lat}
-            onChange={(e) =>
-              setLat(
-                e.target.value
-              )
-            }
-          />
-
-          <input
-            placeholder="Longitude"
-            value={lng}
-            onChange={(e) =>
-              setLng(
-                e.target.value
-              )
-            }
-          />
-
-          <select
-            value={severity}
-            onChange={(e) =>
-              setSeverity(
-                e.target.value
-              )
-            }
-          >
-            <option value="high">
-              High
-            </option>
-
-            <option value="medium">
-              Medium
-            </option>
-
-            <option value="low">
-              Low
-            </option>
-          </select>
-
-          <button
-            onClick={createEvent}
-          >
-            ADD EVENT
-          </button>
-        </div>
       </div>
 
       {/* SEARCH */}
-      <div
-        style={{
-          marginBottom: "20px",
-        }}
-      >
+
+      <div className="search-row">
+
         <input
+
           type="text"
-          placeholder="Search region, conflict, country..."
+
+          placeholder="Search threats..."
+
+          className="search-box"
+
           value={search}
+
           onChange={(e) =>
             setSearch(
               e.target.value
             )
           }
-          style={{
-            width: "100%",
-            padding: "15px",
-            background: "#111",
-            border:
-              "1px solid red",
-            color: "red",
-            fontSize: "16px",
-            outline: "none",
-          }}
         />
-      </div>
 
-      {/* FILTERS */}
-      <div
-        style={{
-          display: "flex",
-          gap: "10px",
-          marginBottom: "20px",
-        }}
-      >
-        {[
-          "all",
-          "high",
-          "medium",
-          "low",
-        ].map((level) => (
-          <button
-            key={level}
-            onClick={() =>
-              setFilter(level)
-            }
-          >
-            {level.toUpperCase()}
-          </button>
-        ))}
-      </div>
+        <select
 
-      {/* MAIN */}
-      <div
-        style={{
-          display: "flex",
-          gap: "20px",
-        }}
-      >
-        {/* SIDEBAR */}
-        <div
-          style={{
-            width: "350px",
-            border: "1px solid red",
-            padding: "15px",
-            height: "700px",
-            overflowY: "auto",
-            background: "#050505",
-          }}
-        >
-          <h2>LIVE EVENTS</h2>
+          className="severity-filter"
 
-          {filteredEvents.map(
-            (event) => (
-              <div
-                key={event.id}
-                onClick={() =>
-                  setSelectedPosition([
-                    event.lat,
-                    event.lng,
-                  ])
-                }
-                style={{
-                  border: `2px solid ${event.color}`,
-                  marginBottom:
-                    "15px",
-                  padding: "10px",
-                  background:
-                    "#0a0a0a",
-                  cursor:
-                    "pointer",
-                  position:
-                    "relative",
-                }}
-              >
-                <button
-                  onClick={async (
-                    e
-                  ) => {
-                    e.stopPropagation();
+          value={
+            severityFilter
+          }
 
-                    const confirmDelete =
-                      confirm(
-                        "Delete this event?"
-                      );
-
-                    if (
-                      !confirmDelete
-                    )
-                      return;
-
-                    await supabase
-                      .from(
-                        "events"
-                      )
-                      .delete()
-                      .eq(
-                        "id",
-                        event.id
-                      );
-
-                    setEvents(
-                      (
-                        prev
-                      ) =>
-                        prev.filter(
-                          (
-                            item
-                          ) =>
-                            item.id !==
-                            event.id
-                        )
-                    );
-                  }}
-                  style={{
-                    position:
-                      "absolute",
-                    top: "10px",
-                    right:
-                      "10px",
-                    background:
-                      "red",
-                    color:
-                      "white",
-                    border:
-                      "none",
-                    cursor:
-                      "pointer",
-                    padding:
-                      "5px 8px",
-                  }}
-                >
-                  X
-                </button>
-
-                <h3>
-                  {event.title}
-                </h3>
-
-                <p>
-                  {event.region}
-                </p>
-
-                <p>
-                  Severity:
-                  {event.severity}
-                </p>
-
-                <p
-                  style={{
-                    fontSize:
-                      "12px",
-                    opacity: 0.7,
-                  }}
-                >
-                  {new Date(
-                    event.created_at
-                  ).toLocaleString()}
-                </p>
-              </div>
+          onChange={(e) =>
+            setSeverityFilter(
+              e.target.value
             )
-          )}
+          }
+        >
+
+          <option>
+            ALL
+          </option>
+
+          <option>
+            HIGH
+          </option>
+
+          <option>
+            MEDIUM
+          </option>
+
+          <option>
+            LOW
+          </option>
+
+        </select>
+
+      </div>
+
+      {/* MAIN GRID */}
+
+      <div className="main-grid">
+
+        {/* LIVE FEED */}
+
+        <div className="panel">
+
+          <h2 className="panel-title">
+            LIVE FEED
+          </h2>
+
+          <div className="feed-list">
+
+            {filteredEvents.map(
+              (
+                event
+              ) => (
+
+                <div
+
+                  key={
+                    event.id
+                  }
+
+                  className={`feed-card ${
+                    event.severity ===
+                    "high"
+
+                      ? "feed-high"
+
+                      : "feed-normal"
+                  }`}
+
+                  onClick={() =>
+                    setSelectedEvent(
+                      event
+                    )
+                  }
+                >
+
+                  <h3>
+                    {event.title}
+                  </h3>
+
+                  <p>
+                    REGION: {
+                      event.region
+                    }
+                  </p>
+
+                  <p>
+                    CATEGORY: {
+                      event.category
+                    }
+                  </p>
+
+                  <p>
+                    STATUS: active
+                  </p>
+
+                </div>
+              )
+            )}
+
+          </div>
+
         </div>
 
         {/* MAP */}
-        <div
-          style={{
-            flex: 1,
-          }}
-        >
-          <WorldMap
-            events={
-              filteredEvents
-            }
-          />
+
+        <WorldMap
+
+          events={
+            filteredEvents
+          }
+
+          selectedEvent={
+            selectedEvent
+          }
+        />
+
+        {/* ANALYSIS */}
+
+        <div className="panel">
+
+          <h2 className="panel-title">
+            EVENT ANALYSIS
+          </h2>
+
+          {selectedEvent ? (
+
+            <div className="analysis-box">
+
+              <h3>
+                {
+                  selectedEvent.title
+                }
+              </h3>
+
+              <p>
+                REGION: {
+                  selectedEvent.region
+                }
+              </p>
+
+              <p>
+                CATEGORY: {
+                  selectedEvent.category
+                }
+              </p>
+
+              <p>
+                STATUS: active
+              </p>
+
+              <p>
+                SEVERITY: {
+                  selectedEvent.severity
+                }
+              </p>
+
+              <p>
+                LAT: {
+                  selectedEvent.lat
+                }
+              </p>
+
+              <p>
+                LNG: {
+                  selectedEvent.lng
+                }
+              </p>
+
+            </div>
+
+          ) : (
+
+            <p className="analysis-empty">
+              Select an event
+              from live feed.
+            </p>
+
+          )}
+
         </div>
+
       </div>
+
     </main>
   );
 }

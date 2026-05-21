@@ -2,30 +2,60 @@
   {
     "id": 1,
     "title": "Ukraine Missile Strike",
+    "region": "Ukraine",
+    "category": "Conflict",
     "lat": 50.45,
     "lng": 30.52,
-    "color": "red",
-    "region": "Kyiv",
-    "time": "2 min ago"
+    "severity": "high",
+    "source": "OSINT Monitor",
+    "timestamp": "2026-05-17T12:30:00Z"
   },
 
   {
     "id": 2,
     "title": "Kashmir Border Activity",
+    "region": "Indian Kashmir",
+    "category": "Border",
     "lat": 34.08,
     "lng": 74.79,
-    "color": "yellow",
-    "region": "LOC Region",
-    "time": "12 min ago"
+    "severity": "medium",
+    "source": "Regional Watch",
+    "timestamp": "2026-05-17T10:15:00Z"
   },
 
   {
     "id": 3,
-    "title": "South China Sea Naval Movement",
-    "lat": 13.0,
-    "lng": 114.0,
-    "color": "orange",
-    "region": "Spratly Region",
-    "time": "7 min ago"
+    "title": "South China Sea Naval Activity",
+    "region": "Indo-Pacific",
+    "category": "Naval",
+    "lat": 13,
+    "lng": 114,
+    "severity": "medium",
+    "source": "Naval Tracking",
+    "timestamp": "2026-05-17T08:45:00Z"
+  },
+
+  {
+    "id": 4,
+    "title": "Red Sea Naval Activity",
+    "region": "Middle East",
+    "category": "Naval",
+    "lat": 15,
+    "lng": 42,
+    "severity": "high",
+    "source": "Maritime Watch",
+    "timestamp": "2026-05-17T09:10:00Z"
+  },
+
+  {
+    "id": 5,
+    "title": "Israel-Iran Tensions",
+    "region": "Middle East",
+    "category": "Geopolitical",
+    "lat": 32,
+    "lng": 53,
+    "severity": "high",
+    "source": "Strategic Intel",
+    "timestamp": "2026-05-17T11:40:00Z"
   }
 ]

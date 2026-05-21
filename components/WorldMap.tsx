@@ -1,179 +1,185 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
+
 import {
   MapContainer,
   TileLayer,
   CircleMarker,
-  Circle,
   Popup,
   useMap,
 } from "react-leaflet";
 
 import "leaflet/dist/leaflet.css";
 
-import { useEffect } from "react";
-
-import { useMapStore } from "../store/mapStore";
-
 type EventType = {
   id: number;
   title: string;
   region: string;
+  category: string;
+  severity: string;
   lat: number;
   lng: number;
-  color: string;
-  severity: string;
+  status: string;
 };
 
-type Props = {
-  events: EventType[];
-};
-
-function FlyToLocation() {
+function FocusMap({
+  selectedEvent,
+}: {
+  selectedEvent: EventType | null;
+}) {
   const map = useMap();
 
-  const selectedPosition =
-    useMapStore(
-      (state) =>
-        state.selectedPosition
-    );
-
   useEffect(() => {
-    if (!selectedPosition)
-      return;
+    if (!selectedEvent) return;
 
     map.flyTo(
-      selectedPosition,
+      [selectedEvent.lat, selectedEvent.lng],
       5,
       {
         duration: 2,
       }
     );
-  }, [
-    selectedPosition,
-    map,
-  ]);
+  }, [selectedEvent, map]);
 
   return null;
 }
 
 export default function WorldMap({
   events,
-}: Props) {
+  selectedEvent,
+}: {
+  events: EventType[];
+  selectedEvent: EventType | null;
+}) {
+
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const mapCenter = useMemo(
+    () => [22.5937, 78.9629] as [number, number],
+    []
+  );
+
+  if (!mounted) {
+    return (
+      <div
+        style={{
+          width: "100%",
+          height: "700px",
+          background: "#020617",
+          border: "1px solid #0ea5e9",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          color: "#38bdf8",
+          fontSize: "18px",
+        }}
+      >
+        INITIALIZING TACTICAL MAP...
+      </div>
+    );
+  }
+
   return (
-    <MapContainer
-      center={[20, 0]}
-      zoom={2}
+    <div
       style={{
-        height: "700px",
         width: "100%",
+        height: "700px",
+        border: "1px solid #0ea5e9",
+        overflow: "hidden",
+        background: "#020617",
       }}
     >
-      <TileLayer
-        attribution="&copy; OpenStreetMap"
-        url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-      />
+      <MapContainer
+        center={mapCenter}
+        zoom={3}
+        scrollWheelZoom={true}
+        style={{
+          width: "100%",
+          height: "700px",
+          background: "#020617",
+        }}
+      >
 
-      <FlyToLocation />
+        <TileLayer
+          attribution="OSINT.DIGEST"
+          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+        />
 
-      {events.map((event) => {
-        const markerColor =
-          event.severity ===
-          "high"
-            ? "red"
-            : event.severity ===
-              "medium"
-            ? "orange"
-            : "yellow";
+        <FocusMap
+          selectedEvent={selectedEvent}
+        />
 
-        const radius =
-          event.severity ===
-          "high"
-            ? 18
-            : event.severity ===
-              "medium"
-            ? 14
-            : 10;
+        {events.map((event) => (
 
-        const threatRadius =
-          event.severity ===
-          "high"
-            ? 300000
-            : event.severity ===
-              "medium"
-            ? 180000
-            : 100000;
+          <CircleMarker
+            key={event.id}
+            center={[event.lat, event.lng]}
+            radius={
+              event.severity === "high"
+                ? 18
+                : 12
+            }
 
-        return (
-          <div key={event.id}>
-            {/* THREAT RING */}
-            <Circle
-              center={[
-                event.lat,
-                event.lng,
-              ]}
-              radius={
-                threatRadius
-              }
-              pathOptions={{
-                color:
-                  markerColor,
-                fillColor:
-                  markerColor,
-                fillOpacity: 0.08,
-              }}
-            />
+            pathOptions={{
+              color:
+                event.severity === "high"
+                  ? "#ef4444"
+                  : "#38bdf8",
 
-            {/* MAIN MARKER */}
-            <CircleMarker
-              center={[
-                event.lat,
-                event.lng,
-              ]}
-              radius={radius}
-              pathOptions={{
-                color:
-                  markerColor,
-                fillColor:
-                  markerColor,
-                fillOpacity: 1,
-                weight: 3,
-              }}
-            >
-              <Popup>
-                <div>
-                  <h2>
-                    {
-                      event.title
-                    }
-                  </h2>
+              fillColor:
+                event.severity === "high"
+                  ? "#ef4444"
+                  : "#38bdf8",
 
-                  <p>
-                    Region:
-                    {
-                      event.region
-                    }
-                  </p>
+              fillOpacity: 0.8,
+            }}
+          >
 
-                  <p>
-                    Severity:
-                    {
-                      event.severity
-                    }
-                  </p>
+            <Popup>
 
-                  <p>
-                    Coordinates:
-                    {event.lat}
-                    ,{" "}
-                    {event.lng}
-                  </p>
-                </div>
-              </Popup>
-            </CircleMarker>
-          </div>
-        );
-      })}
-    </MapContainer>
+              <div
+                style={{
+                  color: "#000",
+                  minWidth: "180px",
+                }}
+              >
+
+                <strong>
+                  {event.title}
+                </strong>
+
+                <br />
+
+                REGION:
+                {" "}
+                {event.region}
+
+                <br />
+
+                CATEGORY:
+                {" "}
+                {event.category}
+
+                <br />
+
+                STATUS:
+                {" "}
+                {event.status}
+
+              </div>
+
+            </Popup>
+
+          </CircleMarker>
+
+        ))}
+
+      </MapContainer>
+    </div>
   );
 }
