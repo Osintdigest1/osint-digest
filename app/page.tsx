@@ -4,8 +4,6 @@ import { useEffect, useState } from "react";
 
 import dynamic from "next/dynamic";
 
-import AdminPanel from "@/components/AdminPanel";
-
 const WorldMap = dynamic(
   () => import("@/components/WorldMap"),
   {
@@ -14,242 +12,214 @@ const WorldMap = dynamic(
 );
 
 export default function Home() {
-
-  const [events, setEvents] =
-    useState<any[]>([]);
+  const [events, setEvents] = useState<any[]>([]);
 
   const [selectedEvent, setSelectedEvent] =
     useState<any>(null);
 
-  const [search, setSearch] =
-    useState("");
+  const [search, setSearch] = useState("");
 
   const [severityFilter, setSeverityFilter] =
     useState("ALL");
 
-  const [utcTime, setUtcTime] =
-    useState("");
+  const [utcTime, setUtcTime] = useState("");
 
-  const [istTime, setIstTime] =
-    useState("");
+  const [istTime, setIstTime] = useState("");
+
+  const [title, setTitle] = useState("");
+
+  const [region, setRegion] = useState("");
+
+  const [category, setCategory] =
+    useState("Naval");
+
+  const [severity, setSeverity] =
+    useState("high");
+
+  const [lat, setLat] = useState("");
+
+  const [lng, setLng] = useState("");
 
   useEffect(() => {
-
     const updateClock = () => {
-
       const now = new Date();
 
       setUtcTime(
-        now.toUTCString()
+        now.toUTCString().replace("GMT", "GMT")
       );
 
       setIstTime(
-        now.toLocaleString(
-          "en-IN",
-          {
-            timeZone:
-              "Asia/Kolkata",
-          }
-        )
+        now.toLocaleString("en-IN", {
+          timeZone: "Asia/Kolkata",
+        })
       );
     };
 
     updateClock();
 
-    const interval =
-      setInterval(
-        updateClock,
-        1000
-      );
+    const timer = setInterval(updateClock, 1000);
 
-    return () =>
-      clearInterval(interval);
-
+    return () => clearInterval(timer);
   }, []);
 
-  useEffect(() => {
-
-    async function loadEvents() {
-
-      try {
-
-        const response =
-          await fetch("/api/events");
-
-        const data =
-          await response.json();
-
-        setEvents(data);
-
-      } catch (error) {
-
-        console.log(error);
-
-      }
+  const handleSubmit = () => {
+    if (
+      !title ||
+      !region ||
+      !category ||
+      !severity ||
+      !lat ||
+      !lng
+    ) {
+      return;
     }
 
-    loadEvents();
+    const newEvent = {
+      id: Date.now(),
 
-  }, []);
+      title,
 
-  function handleAddEvent(
-    newEvent: any
-  ) {
+      region,
 
-    setEvents((prev) => [
+      category,
+
+      severity,
+
+      lat: Number(lat),
+
+      lng: Number(lng),
+
+      status: "active",
+
+      timestamp: new Date().toISOString(),
+    };
+
+    setEvents((prev: any) => [
       newEvent,
-      ...prev,
+      ...(Array.isArray(prev) ? prev : []),
     ]);
-  }
+
+    setTitle("");
+
+    setRegion("");
+
+    setCategory("Naval");
+
+    setSeverity("high");
+
+    setLat("");
+
+    setLng("");
+  };
 
   const safeEvents = Array.isArray(events)
-  ? events
-  : [];
+    ? events
+    : [];
 
-const filteredEvents =
-  safeEvents.filter((event) => {
-
+  const filteredEvents = safeEvents.filter(
+    (event) => {
       const matchesSearch =
         event.title
           .toLowerCase()
-          .includes(
-            search.toLowerCase()
-          ) ||
-
+          .includes(search.toLowerCase()) ||
         event.region
           .toLowerCase()
-          .includes(
-            search.toLowerCase()
-          );
+          .includes(search.toLowerCase());
 
       const matchesSeverity =
-        severityFilter === "ALL"
-          ? true
-          : event.severity ===
-            severityFilter;
+        severityFilter === "ALL" ||
+        event.severity === severityFilter;
 
       return (
-        matchesSearch &&
-        matchesSeverity
+        matchesSearch && matchesSeverity
       );
-    });
+    }
+  );
 
-  const highThreats =
-    safeEvents.filter(
-      (e) =>
-        e.severity === "high"
-    ).length;
+  const highThreats = safeEvents.filter(
+    (e) => e.severity === "high"
+  ).length;
 
-  const navalAssets =
-    safeEvents.filter(
-      (e) =>
-        e.category === "Naval"
-    ).length;
+  const activeIncidents =
+    safeEvents.length;
+
+  const navalAssets = safeEvents.filter(
+    (e) => e.category === "Naval"
+  ).length;
 
   return (
-
     <main
       style={{
-        background: "#020617",
+        background: "#010b26",
         minHeight: "100vh",
+        color: "#4fc3ff",
         padding: "24px",
-        color: "#dbeafe",
-        fontFamily:
-          "Arial, sans-serif",
+        fontFamily: "Arial",
       }}
     >
+      <div
+        style={{
+          fontSize: "18px",
+          marginBottom: "12px",
+        }}
+      >
+        GLOBAL THREAT INTELLIGENCE PLATFORM
+      </div>
 
-      {/* HEADER */}
+      <h1
+        style={{
+          fontSize: "88px",
+          fontWeight: "bold",
+          marginBottom: "24px",
+          color: "#74d3fc",
+        }}
+      >
+        OSINT.DIGEST
+      </h1>
 
       <div
         style={{
-          marginBottom: "30px",
+          display: "flex",
+          gap: "16px",
+          marginBottom: "20px",
+          alignItems: "center",
         }}
       >
+        <div style={tagStyle}>
+          UTC / ZULU
+        </div>
+
+        <div>{utcTime}</div>
 
         <div
           style={{
-            color: "#38bdf8",
-            fontSize: "18px",
-            marginBottom: "10px",
+            ...tagStyle,
+            border: "1px solid #00ff88",
+            color: "#00ff88",
           }}
         >
-          GLOBAL THREAT
-          INTELLIGENCE
-          PLATFORM
+          IST
         </div>
 
-        <h1
+        <div
           style={{
-            color: "#7dd3fc",
-            fontSize: "82px",
+            color: "#00ff88",
+          }}
+        >
+          {istTime}
+        </div>
+      </div>
+
+      <div
+        style={{
+          marginBottom: "24px",
+        }}
+      >
+        <div
+          style={{
+            color: "#ffd400",
+            fontSize: "24px",
             fontWeight: "bold",
-            marginBottom: "25px",
-          }}
-        >
-          OSINT.DIGEST
-        </h1>
-
-        {/* TOP BAR */}
-
-        <div
-          style={{
-            display: "flex",
-            gap: "18px",
-            alignItems: "center",
-            marginBottom: "20px",
-            flexWrap: "wrap",
-          }}
-        >
-
-          <div
-            style={{
-              border:
-                "1px solid #0ea5e9",
-              padding:
-                "10px 18px",
-            }}
-          >
-            UTC / ZULU
-          </div>
-
-          <div
-            style={{
-              color: "#38bdf8",
-            }}
-          >
-            {utcTime}
-          </div>
-
-          <div
-            style={{
-              border:
-                "1px solid #22c55e",
-              padding:
-                "10px 18px",
-              color: "#22c55e",
-            }}
-          >
-            IST
-          </div>
-
-          <div
-            style={{
-              color: "#4ade80",
-            }}
-          >
-            {istTime}
-          </div>
-
-        </div>
-
-        {/* DEFCON */}
-
-        <div
-          style={{
-            color: "#facc15",
-            fontSize: "28px",
-            marginBottom: "4px",
           }}
         >
           DEFCON 4
@@ -257,82 +227,59 @@ const filteredEvents =
 
         <div
           style={{
-            color: "#93c5fd",
-            marginBottom: "20px",
+            fontSize: "16px",
           }}
         >
           ELEVATED
         </div>
-
-        {/* TICKER */}
-
-        <div
-          style={{
-            border:
-              "1px solid #0ea5e9",
-            padding: "14px",
-            overflow: "hidden",
-            whiteSpace: "nowrap",
-            marginBottom: "30px",
-          }}
-        >
-
-          {safeEvents.map((event) => (
-
-            <span
-              key={event.id}
-              style={{
-                marginRight: "80px",
-                color:
-                  event.severity ===
-                  "high"
-                    ? "#ef4444"
-                    : "#38bdf8",
-
-                fontWeight: "bold",
-                fontSize: "18px",
-              }}
-            >
-
-              ● {event.region}
-              {" — "}
-              {event.title}
-              {" — "}
-              {event.status}
-
-            </span>
-
-          ))}
-
-        </div>
-
       </div>
 
-      {/* STATS */}
+      <div
+        style={{
+          border: "1px solid #00bfff",
+          padding: "12px",
+          marginBottom: "30px",
+          overflow: "hidden",
+          whiteSpace: "nowrap",
+        }}
+      >
+        {safeEvents.map((event) => (
+          <span
+            key={event.id}
+            style={{
+              marginRight: "80px",
+              color:
+                event.severity === "high"
+                  ? "#ff4d4d"
+                  : "#4fc3ff",
+              fontWeight: "bold",
+            }}
+          >
+            ● {event.region} — {event.title} —
+            active
+          </span>
+        ))}
+      </div>
 
       <div
         style={{
           display: "grid",
           gridTemplateColumns:
             "repeat(4, 1fr)",
-          gap: "18px",
+          gap: "16px",
           marginBottom: "24px",
         }}
       >
-
         <div
           style={{
-            border:
-              "1px solid #ef4444",
-            padding: "24px",
+            ...statBox,
+            border: "1px solid #ff3b3b",
           }}
         >
-
           <div
             style={{
-              color: "#ef4444",
+              color: "#ff4d4d",
               fontSize: "24px",
-              marginBottom: "20px",
             }}
           >
             HIGH THREATS
@@ -340,29 +287,19 @@ const filteredEvents =
 
           <div
             style={{
-              color: "#ef4444",
+              color: "#ff4d4d",
               fontSize: "64px",
               fontWeight: "bold",
             }}
           >
             {highThreats}
           </div>
-
         </div>
 
-        <div
-          style={{
-            border:
-              "1px solid #0ea5e9",
-            padding: "24px",
-          }}
-        >
-
+        <div style={statBox}>
           <div
             style={{
-              color: "#38bdf8",
               fontSize: "24px",
-              marginBottom: "20px",
             }}
           >
             ACTIVE INCIDENTS
@@ -370,29 +307,24 @@ const filteredEvents =
 
           <div
             style={{
-              color: "#38bdf8",
               fontSize: "64px",
               fontWeight: "bold",
             }}
           >
-            {events.length}
+            {activeIncidents}
           </div>
-
         </div>
 
         <div
           style={{
-            border:
-              "1px solid #22c55e",
-            padding: "24px",
+            ...statBox,
+            border: "1px solid #00ff66",
           }}
         >
-
           <div
             style={{
-              color: "#22c55e",
+              color: "#00ff66",
               fontSize: "24px",
-              marginBottom: "20px",
             }}
           >
             MONITORING
@@ -400,29 +332,19 @@ const filteredEvents =
 
           <div
             style={{
-              color: "#22c55e",
+              color: "#00ff66",
               fontSize: "64px",
               fontWeight: "bold",
             }}
           >
             0
           </div>
-
         </div>
 
-        <div
-          style={{
-            border:
-              "1px solid #0ea5e9",
-            padding: "24px",
-          }}
-        >
-
+        <div style={statBox}>
           <div
             style={{
-              color: "#38bdf8",
               fontSize: "24px",
-              marginBottom: "20px",
             }}
           >
             NAVAL ASSETS
@@ -430,305 +352,345 @@ const filteredEvents =
 
           <div
             style={{
-              color: "#38bdf8",
               fontSize: "64px",
               fontWeight: "bold",
             }}
           >
             {navalAssets}
           </div>
-
         </div>
-
       </div>
-
-      {/* SEARCH */}
 
       <div
         style={{
-          display: "grid",
-          gridTemplateColumns:
-            "5fr 1fr",
-          gap: "14px",
-          marginBottom: "30px",
+          display: "flex",
+          gap: "12px",
+          marginBottom: "24px",
         }}
       >
-
         <input
           placeholder="Search threats..."
           value={search}
           onChange={(e) =>
-            setSearch(
-              e.target.value
-            )
+            setSearch(e.target.value)
           }
-
           style={{
-            background: "#020617",
-            border:
-              "1px solid #0ea5e9",
-            padding: "16px",
-            color: "#dbeafe",
+            flex: 1,
+            background: "#010b26",
+            border: "1px solid #00bfff",
+            color: "#74d3fc",
+            padding: "14px",
           }}
         />
 
         <select
           value={severityFilter}
           onChange={(e) =>
-            setSeverityFilter(
-              e.target.value
-            )
+            setSeverityFilter(e.target.value)
           }
-
           style={{
-            background: "#020617",
-            border:
-              "1px solid #0ea5e9",
-            padding: "16px",
-            color: "#dbeafe",
+            width: "200px",
+            background: "#010b26",
+            border: "1px solid #00bfff",
+            color: "#74d3fc",
+            padding: "14px",
           }}
         >
+          <option value="ALL">ALL</option>
 
-          <option>
-            ALL
+          <option value="high">
+            HIGH
           </option>
 
-          <option>
-            high
+          <option value="medium">
+            MEDIUM
           </option>
 
-          <option>
-            medium
-          </option>
-
+          <option value="low">LOW</option>
         </select>
-
       </div>
-
-      {/* ADMIN PANEL */}
 
       <div
         style={{
-          marginBottom: "30px",
+          marginBottom: "24px",
         }}
       >
+        <h2
+          style={{
+            fontSize: "22px",
+            marginBottom: "12px",
+          }}
+        >
+          LIVE EVENT INJECTION
+        </h2>
 
-        <AdminPanel
-          onAddEvent={
-            handleAddEvent
-          }
-        />
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns:
+              "1fr 1fr 120px 120px 1fr 1fr auto",
+            gap: "8px",
+          }}
+        >
+          <input
+            placeholder="Title"
+            value={title}
+            onChange={(e) =>
+              setTitle(e.target.value)
+            }
+          />
 
+          <input
+            placeholder="Region"
+            value={region}
+            onChange={(e) =>
+              setRegion(e.target.value)
+            }
+          />
+
+          <select
+            value={category}
+            onChange={(e) =>
+              setCategory(e.target.value)
+            }
+          >
+            <option>Naval</option>
+
+            <option>Air</option>
+
+            <option>Border</option>
+          </select>
+
+          <select
+            value={severity}
+            onChange={(e) =>
+              setSeverity(e.target.value)
+            }
+          >
+            <option value="high">
+              high
+            </option>
+
+            <option value="medium">
+              medium
+            </option>
+
+            <option value="low">
+              low
+            </option>
+          </select>
+
+          <input
+            placeholder="Latitude"
+            value={lat}
+            onChange={(e) =>
+              setLat(e.target.value)
+            }
+          />
+
+          <input
+            placeholder="Longitude"
+            value={lng}
+            onChange={(e) =>
+              setLng(e.target.value)
+            }
+          />
+
+          <button
+            onClick={handleSubmit}
+            style={{
+              background: "#01122a",
+              border: "1px solid #00bfff",
+              color: "#ffffff",
+              padding: "10px 18px",
+              cursor: "pointer",
+            }}
+          >
+            PUSH LIVE EVENT
+          </button>
+        </div>
       </div>
-
-      {/* MAIN GRID */}
 
       <div
         style={{
           display: "grid",
           gridTemplateColumns:
-            "1fr 2fr 1fr",
+            "300px 1fr 320px",
           gap: "20px",
-          alignItems: "start",
         }}
       >
-
-        {/* LEFT */}
-
         <div
           style={{
-            border:
-              "1px solid #0ea5e9",
-            background: "#020617",
-            padding: "20px",
-            minHeight: "700px",
+            border: "1px solid #00bfff",
+            padding: "18px",
           }}
         >
-
           <h2
             style={{
-              color: "#38bdf8",
-              marginBottom: "24px",
-              fontSize: "48px",
+              fontSize: "32px",
+              marginBottom: "20px",
             }}
           >
             LIVE FEED
           </h2>
 
-          {filteredEvents.map(
-            (event: any) => (
+          {filteredEvents.map((event) => (
+            <div
+              key={event.id}
+              onClick={() =>
+                setSelectedEvent(event)
+              }
+              style={{
+                border:
+                  event.severity === "high"
+                    ? "1px solid #ff3b3b"
+                    : "1px solid #00bfff",
 
+                padding: "16px",
+
+                marginBottom: "16px",
+
+                cursor: "pointer",
+
+                background: "#07142d",
+              }}
+            >
               <div
-                key={event.id}
-
-                onClick={() =>
-                  setSelectedEvent(
-                    event
-                  )
-                }
-
                 style={{
-                  border:
-                    event.severity ===
-                    "high"
-                      ? "1px solid #ef4444"
-                      : "1px solid #0ea5e9",
-
-                  padding: "18px",
-                  marginBottom:
-                    "18px",
-
-                  background:
-                    "#081129",
-
-                  cursor:
-                    "pointer",
+                  fontSize: "18px",
+                  fontWeight: "bold",
+                  marginBottom: "8px",
                 }}
               >
-
-                <h3
-                  style={{
-                    color:
-                      "#38bdf8",
-                    marginBottom:
-                      "12px",
-
-                    fontSize:
-                      "20px",
-                  }}
-                >
-                  {event.title}
-                </h3>
-
-                <p>
-                  REGION:
-                  {" "}
-                  {event.region}
-                </p>
-
-                <p>
-                  CATEGORY:
-                  {" "}
-                  {event.category}
-                </p>
-
-                <p>
-                  STATUS:
-                  {" "}
-                  {event.status}
-                </p>
-
+                {event.title}
               </div>
 
-            )
-          )}
+              <div>
+                REGION: {event.region}
+              </div>
 
+              <div>
+                CATEGORY: {event.category}
+              </div>
+
+              <div>
+                STATUS: {event.status}
+              </div>
+            </div>
+          ))}
         </div>
-
-        {/* CENTER */}
-
-        <div>
-
-          <WorldMap
-            events={
-              filteredEvents
-            }
-
-            selectedEvent={
-              selectedEvent
-            }
-          />
-
-        </div>
-
-        {/* RIGHT */}
 
         <div
           style={{
-            border:
-              "1px solid #0ea5e9",
-            background: "#020617",
-            padding: "20px",
-            minHeight: "700px",
+            height: "700px",
+            border: "1px solid #00bfff",
+            overflow: "hidden",
           }}
         >
+          <WorldMap
+            events={filteredEvents}
+            selectedEvent={selectedEvent}
+          />
+        </div>
 
+        <div
+          style={{
+            border: "1px solid #00bfff",
+            padding: "18px",
+          }}
+        >
           <h2
             style={{
-              color: "#38bdf8",
-              marginBottom: "24px",
-              fontSize: "48px",
+              fontSize: "32px",
+              marginBottom: "20px",
             }}
           >
             EVENT ANALYSIS
           </h2>
 
           {selectedEvent ? (
-
             <div>
-
-              <h3
+              <div
                 style={{
-                  color: "#38bdf8",
-                  marginBottom:
-                    "18px",
-
-                  fontSize:
-                    "24px",
+                  fontSize: "24px",
+                  fontWeight: "bold",
+                  marginBottom: "14px",
                 }}
               >
-                {
-                  selectedEvent.title
-                }
-              </h3>
+                {selectedEvent.title}
+              </div>
 
-              <p>
+              <div
+                style={{
+                  marginBottom: "8px",
+                }}
+              >
                 REGION:
                 {" "}
-                {
-                  selectedEvent.region
-                }
-              </p>
+                {selectedEvent.region}
+              </div>
 
-              <p>
+              <div
+                style={{
+                  marginBottom: "8px",
+                }}
+              >
                 CATEGORY:
                 {" "}
-                {
-                  selectedEvent.category
-                }
-              </p>
+                {selectedEvent.category}
+              </div>
 
-              <p>
+              <div
+                style={{
+                  marginBottom: "8px",
+                }}
+              >
                 SEVERITY:
                 {" "}
-                {
-                  selectedEvent.severity
-                }
-              </p>
+                {selectedEvent.severity}
+              </div>
 
-              <p>
+              <div
+                style={{
+                  marginBottom: "8px",
+                }}
+              >
                 STATUS:
                 {" "}
-                {
-                  selectedEvent.status
-                }
-              </p>
+                {selectedEvent.status}
+              </div>
 
+              <div
+                style={{
+                  marginTop: "20px",
+                  color: "#9fdcff",
+                  lineHeight: "1.6",
+                }}
+              >
+                Tactical intelligence monitoring
+                active. Regional escalation
+                probability elevated.
+              </div>
             </div>
-
           ) : (
-
-            <p>
-              Select an event
-              from live feed.
-            </p>
-
+            <div>
+              Select an event from live
+              feed.
+            </div>
           )}
-
         </div>
-
       </div>
-
     </main>
   );
 }
+
+const tagStyle = {
+  border: "1px solid #00bfff",
+  padding: "12px 18px",
+};
+
+const statBox = {
+  border: "1px solid #00bfff",
+  padding: "24px",
+  background: "#010b26",
+};
