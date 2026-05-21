@@ -4,15 +4,14 @@ import { useEffect, useState } from "react";
 
 import dynamic from "next/dynamic";
 
+import AdminPanel from "@/components/AdminPanel";
+
 const WorldMap = dynamic(
   () => import("@/components/WorldMap"),
   {
     ssr: false,
   }
 );
-import AdminPanel from "@/components/AdminPanel";
-
-import { supabase } from "@/lib/supabase";
 
 export default function Home() {
 
@@ -28,364 +27,410 @@ export default function Home() {
   const [severityFilter, setSeverityFilter] =
     useState("ALL");
 
-  /* LOAD EVENTS */
+  const [utcTime, setUtcTime] =
+    useState("");
+
+  const [istTime, setIstTime] =
+    useState("");
 
   useEffect(() => {
 
-    fetchEvents();
+    const updateClock = () => {
 
-    const channel =
-      supabase
+      const now = new Date();
 
-        .channel(
-          "events-realtime"
-        )
+      setUtcTime(
+        now.toUTCString()
+      );
 
-        .on(
-
-          "postgres_changes",
-
+      setIstTime(
+        now.toLocaleString(
+          "en-IN",
           {
-
-            event: "*",
-
-            schema: "public",
-
-            table: "events",
-          },
-
-          () => {
-
-            fetchEvents();
+            timeZone:
+              "Asia/Kolkata",
           }
         )
-
-        .subscribe();
-
-    return () => {
-
-      supabase.removeChannel(
-        channel
       );
     };
 
-  }, []);
+    updateClock();
 
-  async function fetchEvents() {
-
-    const {
-      data,
-    } = await supabase
-
-      .from("events")
-
-      .select("*")
-
-      .order(
-        "id",
-        {
-          ascending: false,
-        }
+    const interval =
+      setInterval(
+        updateClock,
+        1000
       );
 
-    if (data) {
+    return () =>
+      clearInterval(interval);
 
-      setEvents(data);
+  }, []);
+
+  useEffect(() => {
+
+    async function loadEvents() {
+
+      try {
+
+        const response =
+          await fetch("/api/events");
+
+        const data =
+          await response.json();
+
+        setEvents(data);
+
+      } catch (error) {
+
+        console.log(error);
+
+      }
     }
-  }
 
-  /* ADD EVENT */
+    loadEvents();
 
-  async function handleAddEvent(
-    eventData: any
+  }, []);
+
+  function handleAddEvent(
+    newEvent: any
   ) {
 
-    await supabase
-
-      .from("events")
-
-      .insert([
-        eventData,
-      ]);
+    setEvents((prev) => [
+      newEvent,
+      ...prev,
+    ]);
   }
 
-  /* FILTER EVENTS */
-
   const filteredEvents =
-    events.filter(
-      (event) => {
+    events.filter((event) => {
 
-        const matchesSearch =
+      const matchesSearch =
+        event.title
+          .toLowerCase()
+          .includes(
+            search.toLowerCase()
+          ) ||
 
-          event.title
-            ?.toLowerCase()
+        event.region
+          .toLowerCase()
+          .includes(
+            search.toLowerCase()
+          );
 
-            .includes(
-              search.toLowerCase()
-            )
+      const matchesSeverity =
+        severityFilter === "ALL"
+          ? true
+          : event.severity ===
+            severityFilter;
 
-          ||
-
-          event.region
-            ?.toLowerCase()
-
-            .includes(
-              search.toLowerCase()
-            );
-
-        const matchesSeverity =
-
-          severityFilter ===
-          "ALL"
-
-            ? true
-
-            : event.severity ===
-              severityFilter.toLowerCase();
-
-        return (
-          matchesSearch &&
-          matchesSeverity
-        );
-      }
-    );
-
-  /* COUNTS */
+      return (
+        matchesSearch &&
+        matchesSeverity
+      );
+    });
 
   const highThreats =
     events.filter(
-      (
-        event
-      ) =>
-
-        event.severity ===
-        "high"
+      (e) =>
+        e.severity === "high"
     ).length;
-let defcon = "DEFCON 5";
-let defconLabel = "NORMAL";
-let defconColor = "#22c55e";
 
-if (highThreats >= 1) {
-
-  defcon = "DEFCON 4";
-  defconLabel = "ELEVATED";
-  defconColor = "#eab308";
-}
-
-if (highThreats >= 3) {
-
-  defcon = "DEFCON 3";
-  defconLabel = "HIGH ALERT";
-  defconColor = "#f97316";
-}
-
-if (highThreats >= 5) {
-
-  defcon = "DEFCON 2";
-  defconLabel = "SEVERE";
-  defconColor = "#ef4444";
-}
-
-if (highThreats >= 7) {
-
-  defcon = "DEFCON 1";
-  defconLabel = "CRITICAL";
-  defconColor = "#dc2626";
-}
   const navalAssets =
     events.filter(
-      (
-        event
-      ) =>
-
-        event.category ===
-        "Naval"
+      (e) =>
+        e.category === "Naval"
     ).length;
 
   return (
 
-    <main className="dashboard">
+    <main
+      style={{
+        background: "#020617",
+        minHeight: "100vh",
+        padding: "24px",
+        color: "#dbeafe",
+        fontFamily:
+          "Arial, sans-serif",
+      }}
+    >
 
       {/* HEADER */}
 
-      <div className="topbar">
+      <div
+        style={{
+          marginBottom: "30px",
+        }}
+      >
 
-        <div>
+        <div
+          style={{
+            color: "#38bdf8",
+            fontSize: "18px",
+            marginBottom: "10px",
+          }}
+        >
+          GLOBAL THREAT
+          INTELLIGENCE
+          PLATFORM
+        </div>
 
-          <div className="platform-label">
-            GLOBAL THREAT
-            INTELLIGENCE PLATFORM
+        <h1
+          style={{
+            color: "#7dd3fc",
+            fontSize: "82px",
+            fontWeight: "bold",
+            marginBottom: "25px",
+          }}
+        >
+          OSINT.DIGEST
+        </h1>
+
+        {/* TOP BAR */}
+
+        <div
+          style={{
+            display: "flex",
+            gap: "18px",
+            alignItems: "center",
+            marginBottom: "20px",
+            flexWrap: "wrap",
+          }}
+        >
+
+          <div
+            style={{
+              border:
+                "1px solid #0ea5e9",
+              padding:
+                "10px 18px",
+            }}
+          >
+            UTC / ZULU
           </div>
 
-          <h1 className="logo">
-            OSINT.DIGEST
-          </h1>
+          <div
+            style={{
+              color: "#38bdf8",
+            }}
+          >
+            {utcTime}
+          </div>
+
+          <div
+            style={{
+              border:
+                "1px solid #22c55e",
+              padding:
+                "10px 18px",
+              color: "#22c55e",
+            }}
+          >
+            IST
+          </div>
+
+          <div
+            style={{
+              color: "#4ade80",
+            }}
+          >
+            {istTime}
+          </div>
 
         </div>
 
-        {/* ONLY ONE ADMIN PANEL */}
+        {/* DEFCON */}
 
-        <AdminPanel
-          onAddEvent={
-            handleAddEvent
-          }
-        />
-
-      </div>
-
-      {/* TIME ROW */}
-
-      <div className="time-row">
-
-        <div className="time-box">
-          UTC / ZULU
+        <div
+          style={{
+            color: "#facc15",
+            fontSize: "28px",
+            marginBottom: "4px",
+          }}
+        >
+          DEFCON 4
         </div>
 
-        <div className="time-value">
-
-          {
-            new Date()
-              .toUTCString()
-          }
-
+        <div
+          style={{
+            color: "#93c5fd",
+            marginBottom: "20px",
+          }}
+        >
+          ELEVATED
         </div>
 
-        <div className="time-box green">
-          IST
-        </div>
+        {/* TICKER */}
 
-        <div className="time-value green-text">
+        <div
+          style={{
+            border:
+              "1px solid #0ea5e9",
+            padding: "14px",
+            overflow: "hidden",
+            whiteSpace: "nowrap",
+            marginBottom: "30px",
+          }}
+        >
 
-          {
-            new Date()
-              .toLocaleString(
-                "en-IN"
-              )
-          }
+          {events.map((event) => (
 
-        </div>
-
-      </div>
-<div
-  className="defcon-bar"
-
-  style={{
-    borderColor: defconColor,
-  }}
->
-
-  <div
-    className="defcon-level"
-
-    style={{
-      color: defconColor,
-    }}
-  >
-    {defcon}
-  </div>
-
-  <div className="defcon-label">
-    {defconLabel}
-  </div>
-
-</div>
-      {/* TICKER */}
-
-      <div className="ticker">
-
-        <div className="ticker-track">
-
-          {events.map(
-            (
-              event
-            ) => (
-
-              <span
-
-                key={
-                  event.id
-                }
-
-                className={
-
+            <span
+              key={event.id}
+              style={{
+                marginRight: "80px",
+                color:
                   event.severity ===
                   "high"
+                    ? "#ef4444"
+                    : "#38bdf8",
 
-                    ? "ticker-high"
+                fontWeight: "bold",
+                fontSize: "18px",
+              }}
+            >
 
-                    : "ticker-normal"
-                }
-              >
+              ● {event.region}
+              {" — "}
+              {event.title}
+              {" — "}
+              {event.status}
 
-                ● {
+            </span>
 
-                  event.region
-                }
-
-                {" — "}
-
-                {
-
-                  event.title
-                }
-
-                {" — active"}
-
-              </span>
-            )
-          )}
+          ))}
 
         </div>
 
       </div>
 
-      {/* METRICS */}
+      {/* STATS */}
 
-      <div className="metrics-grid">
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns:
+            "repeat(4, 1fr)",
+          gap: "18px",
+          marginBottom: "24px",
+        }}
+      >
 
-        <div className="metric-card red">
+        <div
+          style={{
+            border:
+              "1px solid #ef4444",
+            padding: "24px",
+          }}
+        >
 
-          <div className="metric-title">
+          <div
+            style={{
+              color: "#ef4444",
+              fontSize: "24px",
+              marginBottom: "20px",
+            }}
+          >
             HIGH THREATS
           </div>
 
-          <div className="metric-value">
+          <div
+            style={{
+              color: "#ef4444",
+              fontSize: "64px",
+              fontWeight: "bold",
+            }}
+          >
             {highThreats}
           </div>
 
         </div>
 
-        <div className="metric-card blue">
+        <div
+          style={{
+            border:
+              "1px solid #0ea5e9",
+            padding: "24px",
+          }}
+        >
 
-          <div className="metric-title">
+          <div
+            style={{
+              color: "#38bdf8",
+              fontSize: "24px",
+              marginBottom: "20px",
+            }}
+          >
             ACTIVE INCIDENTS
           </div>
 
-          <div className="metric-value">
+          <div
+            style={{
+              color: "#38bdf8",
+              fontSize: "64px",
+              fontWeight: "bold",
+            }}
+          >
             {events.length}
           </div>
 
         </div>
 
-        <div className="metric-card green">
+        <div
+          style={{
+            border:
+              "1px solid #22c55e",
+            padding: "24px",
+          }}
+        >
 
-          <div className="metric-title">
+          <div
+            style={{
+              color: "#22c55e",
+              fontSize: "24px",
+              marginBottom: "20px",
+            }}
+          >
             MONITORING
           </div>
 
-          <div className="metric-value">
+          <div
+            style={{
+              color: "#22c55e",
+              fontSize: "64px",
+              fontWeight: "bold",
+            }}
+          >
             0
           </div>
 
         </div>
 
-        <div className="metric-card blue">
+        <div
+          style={{
+            border:
+              "1px solid #0ea5e9",
+            padding: "24px",
+          }}
+        >
 
-          <div className="metric-title">
+          <div
+            style={{
+              color: "#38bdf8",
+              fontSize: "24px",
+              marginBottom: "20px",
+            }}
+          >
             NAVAL ASSETS
           </div>
 
-          <div className="metric-value">
+          <div
+            style={{
+              color: "#38bdf8",
+              fontSize: "64px",
+              fontWeight: "bold",
+            }}
+          >
             {navalAssets}
           </div>
 
@@ -395,38 +440,49 @@ if (highThreats >= 7) {
 
       {/* SEARCH */}
 
-      <div className="search-row">
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns:
+            "5fr 1fr",
+          gap: "14px",
+          marginBottom: "30px",
+        }}
+      >
 
         <input
-
-          type="text"
-
           placeholder="Search threats..."
-
-          className="search-box"
-
           value={search}
-
           onChange={(e) =>
             setSearch(
               e.target.value
             )
           }
+
+          style={{
+            background: "#020617",
+            border:
+              "1px solid #0ea5e9",
+            padding: "16px",
+            color: "#dbeafe",
+          }}
         />
 
         <select
-
-          className="severity-filter"
-
-          value={
-            severityFilter
-          }
-
+          value={severityFilter}
           onChange={(e) =>
             setSeverityFilter(
               e.target.value
             )
           }
+
+          style={{
+            background: "#020617",
+            border:
+              "1px solid #0ea5e9",
+            padding: "16px",
+            color: "#dbeafe",
+          }}
         >
 
           <option>
@@ -434,152 +490,223 @@ if (highThreats >= 7) {
           </option>
 
           <option>
-            HIGH
+            high
           </option>
 
           <option>
-            MEDIUM
-          </option>
-
-          <option>
-            LOW
+            medium
           </option>
 
         </select>
 
       </div>
 
-      {/* MAIN GRID */}
+      {/* ADMIN PANEL */}
 
-      <div className="main-grid">
+      <div
+        style={{
+          marginBottom: "30px",
+        }}
+      >
 
-        {/* LIVE FEED */}
-
-        <div className="panel">
-
-          <h2 className="panel-title">
-            LIVE FEED
-          </h2>
-
-          <div className="feed-list">
-
-            {filteredEvents.map(
-              (
-                event
-              ) => (
-
-                <div
-
-                  key={
-                    event.id
-                  }
-
-                  className={`feed-card ${
-                    event.severity ===
-                    "high"
-
-                      ? "feed-high"
-
-                      : "feed-normal"
-                  }`}
-
-                  onClick={() =>
-                    setSelectedEvent(
-                      event
-                    )
-                  }
-                >
-
-                  <h3>
-                    {event.title}
-                  </h3>
-
-                  <p>
-                    REGION: {
-                      event.region
-                    }
-                  </p>
-
-                  <p>
-                    CATEGORY: {
-                      event.category
-                    }
-                  </p>
-
-                  <p>
-                    STATUS: active
-                  </p>
-
-                </div>
-              )
-            )}
-
-          </div>
-
-        </div>
-
-        {/* MAP */}
-
-        <WorldMap
-
-          events={
-            filteredEvents
-          }
-
-          selectedEvent={
-            selectedEvent
+        <AdminPanel
+          onAddEvent={
+            handleAddEvent
           }
         />
 
-        {/* ANALYSIS */}
+      </div>
 
-        <div className="panel">
+      {/* MAIN GRID */}
 
-          <h2 className="panel-title">
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns:
+            "1fr 2fr 1fr",
+          gap: "20px",
+          alignItems: "start",
+        }}
+      >
+
+        {/* LEFT */}
+
+        <div
+          style={{
+            border:
+              "1px solid #0ea5e9",
+            background: "#020617",
+            padding: "20px",
+            minHeight: "700px",
+          }}
+        >
+
+          <h2
+            style={{
+              color: "#38bdf8",
+              marginBottom: "24px",
+              fontSize: "48px",
+            }}
+          >
+            LIVE FEED
+          </h2>
+
+          {filteredEvents.map(
+            (event: any) => (
+
+              <div
+                key={event.id}
+
+                onClick={() =>
+                  setSelectedEvent(
+                    event
+                  )
+                }
+
+                style={{
+                  border:
+                    event.severity ===
+                    "high"
+                      ? "1px solid #ef4444"
+                      : "1px solid #0ea5e9",
+
+                  padding: "18px",
+                  marginBottom:
+                    "18px",
+
+                  background:
+                    "#081129",
+
+                  cursor:
+                    "pointer",
+                }}
+              >
+
+                <h3
+                  style={{
+                    color:
+                      "#38bdf8",
+                    marginBottom:
+                      "12px",
+
+                    fontSize:
+                      "20px",
+                  }}
+                >
+                  {event.title}
+                </h3>
+
+                <p>
+                  REGION:
+                  {" "}
+                  {event.region}
+                </p>
+
+                <p>
+                  CATEGORY:
+                  {" "}
+                  {event.category}
+                </p>
+
+                <p>
+                  STATUS:
+                  {" "}
+                  {event.status}
+                </p>
+
+              </div>
+
+            )
+          )}
+
+        </div>
+
+        {/* CENTER */}
+
+        <div>
+
+          <WorldMap
+            events={
+              filteredEvents
+            }
+
+            selectedEvent={
+              selectedEvent
+            }
+          />
+
+        </div>
+
+        {/* RIGHT */}
+
+        <div
+          style={{
+            border:
+              "1px solid #0ea5e9",
+            background: "#020617",
+            padding: "20px",
+            minHeight: "700px",
+          }}
+        >
+
+          <h2
+            style={{
+              color: "#38bdf8",
+              marginBottom: "24px",
+              fontSize: "48px",
+            }}
+          >
             EVENT ANALYSIS
           </h2>
 
           {selectedEvent ? (
 
-            <div className="analysis-box">
+            <div>
 
-              <h3>
+              <h3
+                style={{
+                  color: "#38bdf8",
+                  marginBottom:
+                    "18px",
+
+                  fontSize:
+                    "24px",
+                }}
+              >
                 {
                   selectedEvent.title
                 }
               </h3>
 
               <p>
-                REGION: {
+                REGION:
+                {" "}
+                {
                   selectedEvent.region
                 }
               </p>
 
               <p>
-                CATEGORY: {
+                CATEGORY:
+                {" "}
+                {
                   selectedEvent.category
                 }
               </p>
 
               <p>
-                STATUS: active
-              </p>
-
-              <p>
-                SEVERITY: {
+                SEVERITY:
+                {" "}
+                {
                   selectedEvent.severity
                 }
               </p>
 
               <p>
-                LAT: {
-                  selectedEvent.lat
-                }
-              </p>
-
-              <p>
-                LNG: {
-                  selectedEvent.lng
+                STATUS:
+                {" "}
+                {
+                  selectedEvent.status
                 }
               </p>
 
@@ -587,7 +714,7 @@ if (highThreats >= 7) {
 
           ) : (
 
-            <p className="analysis-empty">
+            <p>
               Select an event
               from live feed.
             </p>
