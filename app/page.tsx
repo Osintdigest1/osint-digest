@@ -102,8 +102,12 @@ export default function Home() {
     ]);
   }
 
-  const filteredEvents =
-    events.filter((event) => {
+  const safeEvents = Array.isArray(events)
+  ? events
+  : [];
+
+const filteredEvents =
+  safeEvents.filter((event) => {
 
       const matchesSearch =
         event.title
@@ -131,13 +135,13 @@ export default function Home() {
     });
 
   const highThreats =
-    events.filter(
+    safeEvents.filter(
       (e) =>
         e.severity === "high"
     ).length;
 
   const navalAssets =
-    events.filter(
+    safeEvents.filter(
       (e) =>
         e.category === "Naval"
     ).length;
@@ -273,7 +277,7 @@ export default function Home() {
           }}
         >
 
-          {events.map((event) => (
+          {safeEvents.map((event) => (
 
             <span
               key={event.id}
