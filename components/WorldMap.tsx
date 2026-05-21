@@ -28,9 +28,11 @@ function FocusMap({
 }: {
   selectedEvent: EventType | null;
 }) {
+
   const map = useMap();
 
   useEffect(() => {
+
     if (!selectedEvent) return;
 
     map.flyTo(
@@ -40,6 +42,7 @@ function FocusMap({
         duration: 2,
       }
     );
+
   }, [selectedEvent, map]);
 
   return null;
@@ -53,14 +56,15 @@ export default function WorldMap({
   selectedEvent: EventType | null;
 }) {
 
-  const [mounted, setMounted] = useState(false);
+  const [mounted, setMounted] =
+    useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
   const mapCenter = useMemo(
-    () => [22.5937, 78.9629] as [number, number],
+    () => [20, 78] as [number, number],
     []
   );
 
@@ -85,15 +89,17 @@ export default function WorldMap({
   }
 
   return (
+
     <div
       style={{
         width: "100%",
         height: "700px",
-        border: "1px solid #0ea5e9",
         overflow: "hidden",
+        border: "1px solid #0ea5e9",
         background: "#020617",
       }}
     >
+
       <MapContainer
         center={mapCenter}
         zoom={3}
@@ -101,7 +107,6 @@ export default function WorldMap({
         style={{
           width: "100%",
           height: "700px",
-          background: "#020617",
         }}
       >
 
@@ -118,7 +123,11 @@ export default function WorldMap({
 
           <CircleMarker
             key={event.id}
-            center={[event.lat, event.lng]}
+            center={[
+              event.lat,
+              event.lng,
+            ]}
+
             radius={
               event.severity === "high"
                 ? 18
@@ -136,7 +145,7 @@ export default function WorldMap({
                   ? "#ef4444"
                   : "#38bdf8",
 
-              fillOpacity: 0.8,
+              fillOpacity: 0.7,
             }}
           >
 
@@ -144,8 +153,8 @@ export default function WorldMap({
 
               <div
                 style={{
-                  color: "#000",
                   minWidth: "180px",
+                  color: "#000",
                 }}
               >
 
@@ -167,6 +176,12 @@ export default function WorldMap({
 
                 <br />
 
+                SEVERITY:
+                {" "}
+                {event.severity}
+
+                <br />
+
                 STATUS:
                 {" "}
                 {event.status}
@@ -180,6 +195,7 @@ export default function WorldMap({
         ))}
 
       </MapContainer>
+
     </div>
   );
 }
